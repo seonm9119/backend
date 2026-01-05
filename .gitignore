@@ -208,8 +208,8 @@ __marimo__/
 
 
 # No commit
-*.env
-Dockerfile
-logs/
-requirements.txt
-.gitignore
+# *.env
+# Dockerfile
+# logs/
+# requirements.txt
+# .gitignore
