@@ -1,0 +1,20 @@
+{
+    "topics": [
+      {
+        "name": "test",
+        "partitions": 3,
+        "replication_factor": 1,
+        "configs": {
+          "retention.ms": "86400000",
+          "cleanup.policy": "delete"
+        },
+        "dlq": {
+          "enabled": true,
+          "partitions": 1,
+          "configs": {
+            "retention.ms": "604800000"
+          }
+        }
+      }
+    ]
+  }
