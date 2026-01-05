@@ -1,0 +1,61 @@
+services:
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: kafka
+    env_file:
+      - ./kafka.env
+    ports:
+      - "${KAFKA_HOST_PORT:-29092}:29092"
+    environment:
+      KAFKA_NODE_ID: "${KAFKA_NODE_ID:-1}"
+      KAFKA_PROCESS_ROLES: "${KAFKA_PROCESS_ROLES:-broker,controller}"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "${KAFKA_CONTROLLER_LISTENER_NAMES:-CONTROLLER}"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "${KAFKA_CONTROLLER_QUORUM_VOTERS:-1@kafka:9093}"
+
+      KAFKA_LISTENERS: "${KAFKA_LISTENERS:-CONTROLLER://0.0.0.0:9093,DOCKER://0.0.0.0:9092,HOST://0.0.0.0:29092}"
+      KAFKA_ADVERTISED_LISTENERS: "${KAFKA_ADVERTISED_LISTENERS:-DOCKER://kafka:9092,HOST://localhost:29092}"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP:-CONTROLLER:PLAINTEXT,DOCKER:PLAINTEXT,HOST:PLAINTEXT}"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "${KAFKA_INTER_BROKER_LISTENER_NAME:-DOCKER}"
+
+      # 실무 습관: false 권장 (오타 토픽 자동 생성 방지)
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "${KAFKA_AUTO_CREATE_TOPICS_ENABLE:-false}"
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR:-1}"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "${KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR:-1}"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "${KAFKA_TRANSACTION_STATE_LOG_MIN_ISR:-1}"
+    volumes:
+      - ./logs/kafka:/var/log/kafka
+
+  topic-init:
+    image: python:3.11-slim
+    container_name: topic-init
+    working_dir: /app/engine
+    env_file:
+      - ./kafka.env
+    volumes:
+      - ./:/app/engine:ro
+    depends_on:
+      kafka:
+        condition: service_started
+    command: >
+      sh -lc "set -e;
+      python -m pip -q install --no-cache-dir kafka-python;
+      python kafka/initialize.py --bootstrap ${KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS:-kafka:9092} --topic-dir ${TOPIC_DIR:-kafka/topics}
+      "
+    restart: "no"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: kafka-ui
+    env_file:
+      - ./kafka.env
+    ports:
+      - "${KAFKA_UI_PORT:-8080}:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: "${KAFKA_CLUSTERS_0_NAME:-local}"
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "${KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS:-kafka:9092}"
+    depends_on:
+      kafka:
+        condition: service_started
+      topic-init:
+        condition: service_completed_successfully
