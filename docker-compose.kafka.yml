@@ -29,18 +29,18 @@ services:
   topic-init:
     image: python:3.11-slim
     container_name: topic-init
-    working_dir: /app/engine
+    working_dir: /app
     env_file:
       - ./kafka.env
     volumes:
-      - ./:/app/engine:ro
+      - ./:/app:ro
     depends_on:
       kafka:
         condition: service_started
     command: >
       sh -lc "set -e;
       python -m pip -q install --no-cache-dir kafka-python;
-      python kafka/initialize.py --bootstrap ${KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS:-kafka:9092} --topic-dir ${TOPIC_DIR:-kafka/topics}
+      python engine/kafka/initialize.py --bootstrap ${KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS:-kafka:9092} --topic-dir ${TOPIC_DIR:-engine/kafka/topics}
       "
     restart: "no"
 

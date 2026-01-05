@@ -1,0 +1,21 @@
+services:
+  consumers:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: test-consumers:latest
+    container_name: test-consumers
+    restart: unless-stopped
+
+    # # infra compose에 kafka 서비스가 있을 때 같이 올리면 같은 네트워크(default) 공유됨
+    # depends_on:
+    #   - kafka
+
+    # consumers.conf에서 토픽/그룹을 이미 박아두면 여기 env는 없어도 됨
+    # 필요하면 공통 옵션만 넣어도 OK
+    environment:
+      PYTHONUNBUFFERED: "1"
+      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS:-kafka:9092}"
+
+    # 컨테이너에서 stdout 로그 보이게
+    tty: true
